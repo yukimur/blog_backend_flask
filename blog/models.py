@@ -43,23 +43,25 @@ class User(db.Model,ModelMixin):
         if save_now:
             self.save()
 
-# class Image(db.Model):
-#     """图片表"""
-#     id = Column(Integer, primary_key=True)
-#     image = models.ImageField(upload_to="images")
-#     create_time = models.DateTimeField(auto_now_add=True)   # 创建时间
-#     is_public = models.BooleanField(default=False)  # 是否公有
-#     md5 = models.CharField(max_length=64,blank=True,null=True)  # md5
+class Image(db.Model,ModelMixin):
+    """图片表"""
+    id = Column(Integer, primary_key=True)
+    create_time = Column(DateTime, default=now, nullable=False)
+    user_id = Column(Integer, ForeignKey('user.id'),nullable=False)
+    user = db.relationship('User',backref=db.backref('image_list', lazy=True))
+    md5 = Column(String(255), nullable=False)
+    url = Column(String(255), nullable=False)
+
 
 class TimestampMixin(object):
     create_time = Column(DateTime, default=now, nullable=False)
     update_time = Column(DateTime, default=now, onupdate=now, nullable=False)
 
-class Blog(db.Model,TimestampMixin):
+class Blog(db.Model,ModelMixin,TimestampMixin):
     """博客表"""
     id = Column(Integer, primary_key=True)
     title = Column(String(255), nullable=False)
-    user_id = db.Column(Integer, ForeignKey('user.id'),nullable=False)
+    user_id = Column(Integer, ForeignKey('user.id'),nullable=False)
     user = db.relationship('User',backref=db.backref('blog_list', lazy=True))
     type_list = Column(JSONType, default=["博客"])
     tag_list = Column(JSONType, default=[])
@@ -67,19 +69,23 @@ class Blog(db.Model,TimestampMixin):
     view_count = Column(Integer, default=0)
     delete = Column(Boolean,default=False)
     extra = Column(JSONType, default={})
-    # title_page = models.ForeignKey(Image,on_delete=models.SET_NULL,blank=True,null=True) # 封面外键
+    title_page_id = Column(Integer, ForeignKey('image.id'),nullable=True)
+    title_page = db.relationship('Image',uselist=False)    # 封面外键
+
+    def save(self):
+        super().save()
 
     def delete(self):
         pass
 
-class Comment(db.Model,TimestampMixin):
+class Comment(db.Model,ModelMixin,TimestampMixin):
     """评论表"""
     id = Column(Integer, primary_key=True)
     content = Column(Text,nullable=False)
-    blog_id = db.Column(Integer, ForeignKey('blog.id'),nullable=False)
+    blog_id = Column(Integer, ForeignKey('blog.id'),nullable=False)
     blog = db.relationship('Blog',backref=db.backref('comment_list', lazy=True))
-    # comment = Column(Text, nullable=False)
-    # comment = models.ForeignKey(to='self',on_delete=models.CASCADE,blank=True,null=True,related_name="comment_set")
+    # comment_id = db.Column(Integer, ForeignKey('blog.id'),nullable=False)
+    # comment = db.relationship('Comment',backref=db.backref('comment_list', lazy=True))
     name = Column(String(255), nullable=False)
-    email = Column(String(255)) 
-    phone = Column(String(255)) 
+    email = Column(String(255))
+    phone = Column(String(255))

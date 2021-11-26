@@ -12,6 +12,13 @@ class EsController(object):
         res = self.es.search(index=self.index, body=body)
         return res
 
+    def get(self,id):
+        res = self.es.get(index=self.index, id=id)
+        return res
+
+    def index(self,id,body):
+        self.index(self.index, body, id=id)
+
 if __name__ == "__main__":
     es_controller = EsController()
     es_controller.select()

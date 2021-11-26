@@ -61,7 +61,7 @@ class DslController(object):
             "date_histogram": {
                 "field": field,
                 "interval": "month",
-                "format": "yyyy-MM"
+                "format": "yyyy年MM月"
             }
         }
     
@@ -71,3 +71,11 @@ class DslController(object):
                 "field": field
             }
         }
+
+    def add_must_multi_match_filter(self,search_field_list,keyword):
+        self.body["query"]["bool"]["must"].append({
+            "multi_match" : {
+                "query": keyword,
+                "fields": search_field_list,
+            }
+        })

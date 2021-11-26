@@ -15,10 +15,13 @@ class BlogEsManager(object):
 
     def filter(self,**kwargs):
         for k,v in kwargs.items():
-            if isinstance(v,list):
-                self.dsl_controller.add_must_terms_filter(k,v)
-            else:
-                self.dsl_controller.add_must_term_filter(k,v)
+            if v:
+                if k == "keyword":
+                    self.dsl_controller.add_must_multi_match_filter(["content","title","introduction"],v)
+                elif isinstance(v,list):
+                    self.dsl_controller.add_must_terms_filter(k,v)
+                else:
+                    self.dsl_controller.add_must_term_filter(k,v)
 
     def set_size_page(self,size:int,page:int):
         self.dsl_controller.set_size_page(size,page)
@@ -54,3 +57,7 @@ class BlogEsManager(object):
     def aggs(self):
         data = self.select()
         return data.get("aggregations",{})
+
+    def update(self,id,data):
+        data.pop("id")
+        self.es_controller.index(id,data)

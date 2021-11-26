@@ -4,6 +4,7 @@ from flask_restful import Api, Resource
 from blog.models import User,Blog
 from sqlalchemy.sql import func
 from blog.es_manager import BlogEsManager
+from utils.es_controller import EsController
 
 blog_api = Blueprint('blog', __name__,url_prefix="/blog")
 api = Api(blog_api)
@@ -33,6 +34,30 @@ def get_group_by_date():
     buckets = aggs.get("group_by_%s"%"create_time",{}).get("buckets",[])
     return jsonify(buckets)
 
+@blog_api.route('/get_tag_list/', methods=['GET'])
+def get_tag_list():
+    blog_es_selector = BlogEsManager()
+    blog_es_selector.filter(type_list=["博客"])
+    blog_es_selector.set_size_page(0,0) # 只聚合
+    
+    blog_es_selector.agg_group_by_tag("tag_list")
+
+    aggs = blog_es_selector.aggs
+    buckets = aggs.get("group_by_%s"%"tag_list",{}).get("buckets",[])
+    return jsonify(buckets)
+
+@blog_api.route('/get_type_list/', methods=['GET'])
+def get_type_list():
+    blog_es_selector = BlogEsManager()
+    blog_es_selector.filter(type_list=["博客"])
+    blog_es_selector.set_size_page(0,0) # 只聚合
+    
+    blog_es_selector.agg_group_by_tag("type_list")
+
+    aggs = blog_es_selector.aggs
+    buckets = aggs.get("group_by_%s"%"type_list",{}).get("buckets",[])
+    return jsonify(buckets)
+
 @blog_api.route('/get_group_by_tag/', methods=['GET'])
 def get_group_by_tag():
     blog_es_selector = BlogEsManager()
@@ -47,15 +72,25 @@ def get_group_by_tag():
 
 class BlogItemViewSet(Resource):
     def get(self, id):
-        # abort_if_todo_doesnt_exist(todo_id)
-        return 1
-
-    def post(self,id):
-        pass
+        ec = EsController()
+        res = ec.get(id)
+        res = res.get("_source",{})
+        blog = Blog.query.filter_by(id=id).first()
+        res["user"] = blog.user.username
+        return res
 
     def patch(self, id):
-        args = parser.parse_args()
-        return 1, 201
+        data = request.json
+        blog = Blog.query.filter_by(id=id).first()
+        for k,v in data.items():
+            if k not in ["id","content"]:
+                setattr(blog,k,v)
+        blog.save()
+        
+        # 更新es
+        blog_es_selector = BlogEsManager()
+        blog_es_selector.update(id,data)
+        return data
 
     def delete(self,id):
         pass
@@ -63,17 +98,25 @@ class BlogItemViewSet(Resource):
 class BlogListViewSet(Resource):
     def get(self):
         size = int(request.args.get("size",10))
-        page = int(request.args.get("page",0))
+        page = int(request.args.get("page",1))
         my_type = request.args.get("type","博客")
+        tag_list = request.args.get("tag_list")
+        if tag_list and not isinstance(tag_list,str):
+            tag_list = tag_list.split(",")
+        keyword = request.args.get("keyword")
         order_by = request.args.get("order_by",["-update_time"])
 
         blog_es_selector = BlogEsManager()
-        blog_es_selector.filter(type_list=[my_type])
+        blog_es_selector.filter(type_list=[my_type],tag_list=tag_list,keyword=keyword)
         blog_es_selector.set_size_page(size,page)
         blog_es_selector.set_order(order_by)
         result = blog_es_selector.result
         return result
 
+class ImageViewSet(Resource):
+    def post(self):
+        pass
 
-api.add_resource(BlogListViewSet, '/blog_list/')
-api.add_resource(BlogItemViewSet, '/blogitem/<id>')
+api.add_resource(BlogListViewSet, "/blog_list/")
+api.add_resource(BlogItemViewSet, "/blogitem/<int:id>/")
+api.add_resource(ImageViewSet, "/image/")
