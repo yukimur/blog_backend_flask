@@ -79,3 +79,10 @@ class DslController(object):
                 "fields": search_field_list,
             }
         })
+
+    def add_must_exists_filter(self,field):
+        self.body["query"]["bool"]["must"].append({
+            "exists":{
+                "field":field
+            }
+        })

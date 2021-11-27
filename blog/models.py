@@ -7,6 +7,8 @@ from sqlalchemy import (
 from blog.utils import *
 from sqlalchemy import TypeDecorator
 import json
+from blog.config import Config
+import os
 
 class ModelMixin(object):
     def save(self):
@@ -46,12 +48,24 @@ class User(db.Model,ModelMixin):
 class Image(db.Model,ModelMixin):
     """图片表"""
     id = Column(Integer, primary_key=True)
+    name = Column(String(128),nullable=False)
     create_time = Column(DateTime, default=now, nullable=False)
     user_id = Column(Integer, ForeignKey('user.id'),nullable=False)
     user = db.relationship('User',backref=db.backref('image_list', lazy=True))
     md5 = Column(String(255), nullable=False)
     url = Column(String(255), nullable=False)
 
+    def save(self,image_obj):
+        image_dir = os.path.join(Config.MEDIA_PATH,"images")
+        generated_file_name = generate_file_name(image_dir,image_obj.filename)
+        self.name = image_obj.filename
+        self.url = "images/%s"%(generated_file_name)
+        self.md5 = generate_md5_by_file(image_obj)
+        save_file_to_dir(image_obj,generated_file_name,image_dir)
+        return super().save()
+    
+    def simple_save(self):
+        return super().save()
 
 class TimestampMixin(object):
     create_time = Column(DateTime, default=now, nullable=False)

@@ -1,4 +1,5 @@
 
+import os
 
 class Config(object):
     # noinspection PyPackageRequirements
@@ -6,6 +7,9 @@ class Config(object):
     TOKEN_EXPIRED = 3600 * 24 * 3   # 维持3天
     # SERVER_NAME = "0.0.0.0:8004"
 
+    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+    MEDIA_PATH = "/home/yukimura/Web/media"
+    
     # LOG_FORMAT = '%(asctime)s - %(levelname)s - %(name)s - %(message)s'
     # LOG_LEVEL = logging.INFO
 

@@ -18,6 +18,8 @@ class BlogEsManager(object):
             if v:
                 if k == "keyword":
                     self.dsl_controller.add_must_multi_match_filter(["content","title","introduction"],v)
+                elif k == "is_title_page":
+                    self.dsl_controller.add_must_exists_filter("title_page_id")
                 elif isinstance(v,list):
                     self.dsl_controller.add_must_terms_filter(k,v)
                 else:
@@ -59,5 +61,6 @@ class BlogEsManager(object):
         return data.get("aggregations",{})
 
     def update(self,id,data):
-        data.pop("id")
-        self.es_controller.index(id,data)
+        if "id" in data:
+            data.pop("id")
+        self.es_controller.update(id,data)
